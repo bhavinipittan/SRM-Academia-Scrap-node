@@ -73,8 +73,8 @@ app.use(
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 25,
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   keyGenerator: (req) => {
     const token = req.headers["x-csrf-token"];
@@ -89,6 +89,7 @@ const limiter = rateLimit({
     });
   },
 });
+
 app.use(limiter);
 
 function encodeToken(str) {
