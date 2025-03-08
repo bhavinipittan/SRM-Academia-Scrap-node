@@ -1,4 +1,4 @@
-# Express API Server
+# SRM ACADEMIA SCRAP API Server
 
 This is an Express.js API server that provides various endpoints for user authentication, course details, attendance tracking, calendar events, day order, marks, and timetables. The server includes caching, rate limiting, and token-based authentication.
 
