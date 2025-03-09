@@ -15,8 +15,32 @@ const {
 class CalendarFetcher {
   constructor(date, cookie) {
     this.cookie = cookie;
-    this.date = date || new Date();
+    
+    // Fix timezone issues by getting the correct current date in IST (Indian Standard Time)
+    // Since EC2 likely uses UTC, we need to adjust to IST (+5:30)
+    const now = date || new Date();
+    
+    // Log the server's date perception
+    console.log("Server thinks the date is:", now.toISOString());
+    console.log("Server timezone offset:", now.getTimezoneOffset());
+    
+    // Force IST timezone by adding +5:30 offset (330 minutes) to UTC
+    // and adjusting by the server's current offset
+    const offsetInMinutes = now.getTimezoneOffset() + 330;
+    const adjustedDate = new Date(now.getTime() + (offsetInMinutes * 60000));
+    
+    console.log("Adjusted date for IST:", adjustedDate.toISOString());
+    console.log("Day of week (0=Sun, 1=Mon):", adjustedDate.getDay());
+    
+    this.date = adjustedDate;
     this.dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    
+    // Force correct day of week regardless of server timezone
+    const dayOfWeek = adjustedDate.getDay();
+    console.log("Current day name should be:", this.dayNames[dayOfWeek]);
+    
+    // Store current day name for later use
+    this.currentDayName = this.dayNames[dayOfWeek];
   }
 
   async getHTML() {
@@ -266,12 +290,10 @@ class CalendarFetcher {
           today = monthEntry.days[0];
         }
         
-        // Ensure today's day name is correct
-        const todayDayName = this.dayNames[this.date.getDay()];
-        if (today.day !== todayDayName) {
-          console.log(`Fixing day name for today: ${today.day} -> ${todayDayName}`);
-          today.day = todayDayName;
-        }
+        // CRITICAL FIX: Force today's day name to match current day
+        // This ensures we get consistent day names regardless of timezone issues
+        today.day = this.currentDayName;
+        console.log(`Set today's day to: ${today.day}`);
         
         // Find tomorrow and day after tomorrow
         const todayIndex = monthEntry.days.findIndex(day => parseInt(day.date, 10) === todayDate);
@@ -279,26 +301,18 @@ class CalendarFetcher {
           if (todayIndex + 1 < monthEntry.days.length) {
             tomorrow = monthEntry.days[todayIndex + 1];
             
-            // Verify tomorrow's day name
-            const tomorrowDate = new Date(this.date);
-            tomorrowDate.setDate(this.date.getDate() + 1);
-            const tomorrowDayName = this.dayNames[tomorrowDate.getDay()];
-            if (tomorrow.day !== tomorrowDayName) {
-              console.log(`Fixing day name for tomorrow: ${tomorrow.day} -> ${tomorrowDayName}`);
-              tomorrow.day = tomorrowDayName;
-            }
+            // Calculate tomorrow's day index
+            const tomorrowDayIndex = (this.date.getDay() + 1) % 7;
+            tomorrow.day = this.dayNames[tomorrowDayIndex];
+            console.log(`Set tomorrow's day to: ${tomorrow.day}`);
             
             if (todayIndex + 2 < monthEntry.days.length) {
               dayAfterTomorrow = monthEntry.days[todayIndex + 2];
               
-              // Verify day after tomorrow's day name
-              const dayAfterTomorrowDate = new Date(this.date);
-              dayAfterTomorrowDate.setDate(this.date.getDate() + 2);
-              const dayAfterTomorrowDayName = this.dayNames[dayAfterTomorrowDate.getDay()];
-              if (dayAfterTomorrow.day !== dayAfterTomorrowDayName) {
-                console.log(`Fixing day name for day after tomorrow: ${dayAfterTomorrow.day} -> ${dayAfterTomorrowDayName}`);
-                dayAfterTomorrow.day = dayAfterTomorrowDayName;
-              }
+              // Calculate day after tomorrow's day index
+              const dayAfterTomorrowDayIndex = (this.date.getDay() + 2) % 7;
+              dayAfterTomorrow.day = this.dayNames[dayAfterTomorrowDayIndex];
+              console.log(`Set day after tomorrow's day to: ${dayAfterTomorrow.day}`);
             }
           }
         }
@@ -361,7 +375,10 @@ class CalendarFetcher {
         console.log("No today object found in calendar, creating fallback");
         const today = this.date;
         response.date = today.getDate().toString();
-        response.day = this.dayNames[today.getDay()];
+        
+        // Force the correct day name
+        response.day = this.currentDayName;
+        
         response.dayOrder = ((today.getDate() % 5) || 5).toString();
         response.event = "Regular Working Day";
         response.status = 200;
@@ -369,7 +386,10 @@ class CalendarFetcher {
       }
 
       response.date = calendarResp.today.date;
-      response.day = calendarResp.today.day;
+      
+      // Force the correct day name
+      response.day = this.currentDayName;
+      
       response.dayOrder = calendarResp.today.dayOrder || "-";
       response.event = calendarResp.today.event;
       response.status = 200;
@@ -382,7 +402,10 @@ class CalendarFetcher {
       const response = new DayOrderResponse();
       const today = this.date;
       response.date = today.getDate().toString();
-      response.day = this.dayNames[today.getDay()];
+      
+      // Force the correct day name
+      response.day = this.currentDayName;
+      
       response.dayOrder = ((today.getDate() % 5) || 5).toString();
       response.event = "Regular Working Day";
       response.status = 200;
