@@ -102,20 +102,8 @@ async function getUserFromHTML(rawPage) {
     const regNumberMatch = rawPage.match(/RA2\d{12}/);
     const regNumber = regNumberMatch ? regNumberMatch[0] : "";
 
-    const tableParts = rawPage.split(
-      '<table border="0" align="left" cellpadding="1" cellspacing="1" style="width:900px;">'
-    );
-    if (tableParts.length < 2) {
-      throw new Error("User table not found in HTML");
-    }
+    const $ = cheerio.load(rawPage);
 
-    const tableHtml = tableParts[1].split("</table>")[0];
-    const fullTableHtml =
-      '<table border="0" align="left" cellpadding="1" cellspacing="1" style="width:900px;">' +
-      tableHtml +
-      "</table>";
-
-    const $ = cheerio.load(fullTableHtml);
     const userData = {
       name: "",
       mobile: "",
@@ -126,9 +114,12 @@ async function getUserFromHTML(rawPage) {
       year: getYear(regNumber),
       department: "",
       section: "",
+      advisors: [],
     };
 
-    $("tr").each((i, row) => {
+    $(
+      'table[border="0"][align="left"][cellpadding="1"][cellspacing="1"][style*="width:900px"] tr'
+    ).each((i, row) => {
       const cells = $(row).find("td");
       for (let i = 0; i < cells.length; i += 2) {
         const key = $(cells[i]).text().trim().replace(":", "");
@@ -166,6 +157,32 @@ async function getUserFromHTML(rawPage) {
         }
       }
     });
+
+    const facultyAdvisorPattern =
+      /strong>([^<]+)<br\/>Faculty Advisor<\/strong><br\/><font color="blue">([^<]+)<\/font><br\/><font color="green">(\d+)/;
+    const facultyMatch = rawPage.match(facultyAdvisorPattern);
+
+    const academicAdvisorPattern =
+      /strong>([^<]+)<br\/>Academic Advisor<\/strong><br\/><font color="blue">([^<]+)<\/font><br\/><font color="green">(\d+)/;
+    const academicMatch = rawPage.match(academicAdvisorPattern);
+
+    if (facultyMatch) {
+      userData.advisors.push({
+        name: facultyMatch[1].trim(),
+        role: "Faculty Advisor",
+        email: facultyMatch[2].trim(),
+        phone: facultyMatch[3].trim(),
+      });
+    }
+
+    if (academicMatch) {
+      userData.advisors.push({
+        name: academicMatch[1].trim(),
+        role: "Academic Advisor",
+        email: academicMatch[2].trim(),
+        phone: academicMatch[3].trim(),
+      });
+    }
 
     return userData;
   } catch (error) {
