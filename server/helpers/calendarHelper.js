@@ -15,22 +15,7 @@ const {
 class CalendarFetcher {
   constructor(date, cookie) {
     this.cookie = cookie;
-
-    if (!date) {
-      const now = new Date();
-
-      const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-      this.date = istTime;
-
-      console.log("UTC time:", now.toISOString());
-      console.log("IST time:", this.date.toISOString());
-      console.log(
-        "IST day of week:",
-        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][this.date.getDay()]
-      );
-    } else {
-      this.date = date;
-    }
+    this.date = date || new Date();
   }
 
   async getHTML() {
