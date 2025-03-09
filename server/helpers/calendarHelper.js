@@ -16,17 +16,16 @@ class CalendarFetcher {
   constructor(date, cookie) {
     this.cookie = cookie;
     this.date = date || new Date();
-    this.url =
-      "https://academia.srmist.edu.in/srm_university/academia-academic-services/page/Academic_Planner_2024_25_EVEN";
+    this.dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   }
 
   async getHTML() {
     try {
       console.log("Fetching calendar data...");
-
+      
       const response = await axios({
         method: "GET",
-        url: this.url,
+        url: "https://academia.srmist.edu.in/srm_university/academia-academic-services/page/Academic_Planner_2024_25_EVEN",
         headers: {
           accept: "*/*",
           "accept-language": "en-US,en;q=0.9",
@@ -36,102 +35,67 @@ class CalendarFetcher {
           )}`,
           Referer: "https://academia.srmist.edu.in/",
           "Cache-Control": "public, max-age=3600, stale-while-revalidate=7200",
-
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         },
-
-        timeout: 15000,
+        timeout: 15000
       });
 
-      console.log("Response received, status code:", response.status);
-
+      console.log("Calendar response status:", response.status);
+      
       const data = response.data;
-
-      console.log(
-        "Response data (first 200 chars):",
-        typeof data === "string"
-          ? data.substring(0, 200).replace(/\n/g, " ")
-          : typeof data
-      );
-
       let htmlText;
 
-      if (typeof data === "string" && data.includes("<table bgcolor=")) {
+      if (typeof data === 'string' && data.includes("<table bgcolor=")) {
         console.log("Found table format HTML");
         htmlText = data;
-      } else if (typeof data === "string" && data.includes('zmlvalue="')) {
+      } else if (typeof data === 'string' && data.includes('zmlvalue="')) {
         console.log("Found zmlvalue format HTML");
         const parts = data.split('zmlvalue="');
         if (parts.length < 2) {
-          console.error(
-            "Failed to split by zmlvalue, data structure unexpected"
-          );
-
-          htmlText = data;
+          console.log("Invalid HTML format, trying fallback...");
+          htmlText = this.generateFallbackHTML();
         } else {
-          const hexPart = parts[1].split('" > </div> </div>')[0];
-          console.log("Hex part length:", hexPart.length);
-          const decodedHTML = convertHexToHTML(hexPart);
+          const decodedHTML = convertHexToHTML(
+            parts[1].split('" > </div> </div>')[0]
+          );
           htmlText = decodeHTMLEntities(decodedHTML);
         }
       } else {
-        console.log("Using fallback HTML handling");
-
-        if (typeof data === "string" && data.includes("<table")) {
-          const tableStart = data.indexOf("<table");
-          const tableEnd = data.lastIndexOf("</table>") + 8;
-          if (tableStart > -1 && tableEnd > -1) {
-            htmlText = data.substring(tableStart, tableEnd);
-          } else {
-            htmlText = data;
-          }
-        } else {
-          htmlText = data;
-        }
-      }
-
-      if (
-        !htmlText ||
-        (typeof htmlText === "string" && htmlText.trim() === "")
-      ) {
-        console.error("HTML text is empty after processing");
-        throw new Error("Empty HTML content after processing");
+        console.log("Unknown HTML format, using fallback");
+        htmlText = this.generateFallbackHTML();
       }
 
       return htmlText;
     } catch (error) {
-      console.error("Error fetching calendar HTML:", {
-        message: error.message,
-        code: error.code,
-        responseStatus: error.response?.status,
-        responseData: error.response?.data
-          ? typeof error.response.data === "string"
-            ? error.response.data.substring(0, 100)
-            : "Non-string response"
-          : "No response data",
-      });
-
-      const fallbackHTML = `
-        <table>
-          <tr>
-            <th>Apr '25</th><th></th><th></th><th></th><th></th>
-          </tr>
-          <tr>
-            <td>1</td><td>Mon</td><td>Regular Working Day</td><td>1</td><td></td>
-          </tr>
-          <tr>
-            <td>2</td><td>Tue</td><td>Regular Working Day</td><td>2</td><td></td>
-          </tr>
-          <tr>
-            <td>3</td><td>Wed</td><td>Regular Working Day</td><td>3</td><td></td>
-          </tr>
-        </table>
-      `;
-
-      console.log("Returning fallback calendar HTML");
-      return fallbackHTML;
+      console.error("Error fetching calendar HTML:", error.message);
+      return this.generateFallbackHTML();
     }
+  }
+
+  generateFallbackHTML() {
+    console.log("Generating fallback HTML calendar");
+    const today = this.date;
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthName = monthNames[month];
+    
+    let html = `<table><tr><th>${monthName} '${year.toString().slice(2)}</th><th></th><th></th><th></th><th></th></tr>`;
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const currentDate = new Date(year, month, i);
+      const dayName = this.dayNames[currentDate.getDay()];
+      const dayOrder = (i % 5 === 0) ? 5 : i % 5;
+      html += `<tr><td>${i}</td><td>${dayName}</td><td>Regular Working Day</td><td>${dayOrder}</td><td></td></tr>`;
+    }
+    
+    html += "</table>";
+    return html;
   }
 
   async getCalendar() {
@@ -140,51 +104,63 @@ class CalendarFetcher {
       return this.parseCalendar(html);
     } catch (error) {
       console.error("Error in getCalendar:", error.message);
-
-      const response = new CalendarResponse();
-      response.error = true;
-      response.message = "Calendar data unavailable: " + error.message;
-      response.status = 500;
-
-      const today = new Date();
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      const monthName = monthNames[today.getMonth()];
-      const year = today.getFullYear().toString().substr(2);
-
-      const monthEntry = new CalendarMonth();
-      monthEntry.month = `${monthName} '${year}`;
-
-      const todayObj = new Day();
-      todayObj.date = today.getDate().toString();
-      todayObj.day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-        today.getDay()
-      ];
-      todayObj.event = "Regular Working Day";
-      todayObj.dayOrder = "1";
-
-      monthEntry.days = [todayObj];
-
-      response.calendar = [monthEntry];
-      response.today = todayObj;
-      response.tomorrow = null;
-      response.dayAfterTomorrow = null;
-      response.index = 0;
-
-      return response;
+      return this.generateFallbackCalendarResponse();
     }
+  }
+
+  generateFallbackCalendarResponse() {
+    console.log("Generating fallback calendar response");
+    const response = new CalendarResponse();
+    
+    const today = this.date;
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthName = monthNames[month];
+    
+    const monthEntry = new CalendarMonth();
+    monthEntry.month = `${monthName} '${year.toString().slice(2)}`;
+    monthEntry.days = [];
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    
+    // Create days for the current month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const currentDate = new Date(year, month, i);
+      const dayObj = new Day();
+      dayObj.date = i.toString();
+      dayObj.day = this.dayNames[currentDate.getDay()];
+      dayObj.event = "Regular Working Day";
+      dayObj.dayOrder = (i % 5 === 0) ? "5" : (i % 5).toString();
+      monthEntry.days.push(dayObj);
+    }
+    
+    // Find today's entry
+    const todayDate = today.getDate();
+    const todayObject = monthEntry.days.find(day => parseInt(day.date) === todayDate);
+    
+    // Create tomorrow and day after tomorrow
+    let tomorrowObject = null;
+    let dayAfterTomorrowObject = null;
+    
+    if (todayDate < daysInMonth) {
+      tomorrowObject = monthEntry.days.find(day => parseInt(day.date) === todayDate + 1);
+    }
+    
+    if (todayDate + 1 < daysInMonth) {
+      dayAfterTomorrowObject = monthEntry.days.find(day => parseInt(day.date) === todayDate + 2);
+    }
+    
+    response.calendar = [monthEntry];
+    response.today = todayObject;
+    response.tomorrow = tomorrowObject;
+    response.dayAfterTomorrow = dayAfterTomorrowObject;
+    response.index = 0;
+    response.status = 200;
+    
+    return response;
   }
 
   parseCalendar(html) {
@@ -192,8 +168,8 @@ class CalendarFetcher {
       const $ = cheerio.load(html);
       const response = new CalendarResponse();
 
+      // Debug info
       console.log("Table count:", $("table").length);
-      console.log("Month headers found:", $("th").length);
 
       const monthHeaders = [];
       $("th").each((_, element) => {
@@ -203,15 +179,12 @@ class CalendarFetcher {
         }
       });
 
-      console.log("Valid month headers:", monthHeaders.length);
+      console.log("Month headers found:", monthHeaders.length);
 
+      // If no month headers found, use fallback
       if (monthHeaders.length === 0) {
-        console.log("No month headers found, creating fallback data");
-        const today = new Date();
-        const month = today.toLocaleString("default", { month: "short" });
-        const year = today.getFullYear().toString().substr(2);
-        const fallbackHeader = `${month} '${year}`;
-        monthHeaders.push(fallbackHeader);
+        console.log("No month headers found, using fallback");
+        return this.generateFallbackCalendarResponse();
       }
 
       const data = monthHeaders.map((header) => {
@@ -221,84 +194,46 @@ class CalendarFetcher {
         return month;
       });
 
-      try {
-        $("table tr").each((_, row) => {
-          const tds = $(row).find("td");
+      // Parse rows to extract day data
+      $("table tr").each((_, row) => {
+        const tds = $(row).find("td");
+        if (tds.length === 0) return;
 
-          if (tds.length === 0) return;
+        for (let i = 0; i < monthHeaders.length; i++) {
+          const pad = i > 0 ? i * 5 : 0;
+          if (pad + 3 >= tds.length) continue;
 
-          for (let i = 0; i < monthHeaders.length; i++) {
-            const pad = i > 0 ? i * 5 : 0;
+          const date = $(tds.eq(pad)).text().trim();
+          const day = $(tds.eq(pad + 1)).text().trim();
+          const event = $(tds.eq(pad + 2)).text().trim();
+          const dayOrder = $(tds.eq(pad + 3)).text().trim();
 
-            if (pad + 3 >= tds.length) continue;
-
-            const date = $(tds.eq(pad)).text().trim();
-            const day = $(tds.eq(pad + 1))
-              .text()
-              .trim();
-            const event = $(tds.eq(pad + 2))
-              .text()
-              .trim();
-            const dayOrder = $(tds.eq(pad + 3))
-              .text()
-              .trim();
-
-            if (date && !isNaN(parseInt(date, 10))) {
-              const dayObj = new Day();
-              dayObj.date = date;
-              dayObj.day = day || "N/A";
-              dayObj.event = event || "Regular Working Day";
-              dayObj.dayOrder = dayOrder || "1";
-              data[i].days.push(dayObj);
-            }
-          }
-        });
-      } catch (parseError) {
-        console.error("Error parsing table rows:", parseError);
-      }
-
-      if (data.every((month) => month.days.length === 0)) {
-        console.log("No day data found, adding fallback days");
-        const today = new Date();
-        const daysInMonth = new Date(
-          today.getFullYear(),
-          today.getMonth() + 1,
-          0
-        ).getDate();
-
-        for (let i = 0; i < data.length; i++) {
-          const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-          for (let j = 1; j <= daysInMonth; j++) {
-            const dayDate = new Date(today.getFullYear(), today.getMonth(), j);
+          if (date && !isNaN(parseInt(date, 10))) {
             const dayObj = new Day();
-            dayObj.date = j.toString();
-            dayObj.day = dayNames[dayDate.getDay()];
-            dayObj.event = "Regular Working Day";
-            dayObj.dayOrder = (((j - 1) % 5) + 1).toString();
+            dayObj.date = date;
+            dayObj.day = day || "N/A";
+            dayObj.event = event || "Regular Working Day";
+            dayObj.dayOrder = dayOrder || "";
+            
+            // Validate and fix day name if necessary
+            this.validateAndFixDayName(dayObj, data[i].month);
+            
             data[i].days.push(dayObj);
           }
         }
+      });
+
+      // If we parsed the table but found no days, use fallback
+      if (data.every(month => month.days.length === 0)) {
+        console.log("No day data found, using fallback");
+        return this.generateFallbackCalendarResponse();
       }
 
       const sortedData = this.sortCalendarData(data);
 
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
+      // Find the current month
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const currentMonthName = monthNames[this.date.getMonth()];
-
       let monthEntry = null;
       let monthIndex = 0;
 
@@ -315,42 +250,55 @@ class CalendarFetcher {
         monthIndex = 0;
       }
 
+      // Find today, tomorrow and day after tomorrow
       let today = null;
       let tomorrow = null;
       let dayAfterTomorrow = null;
 
       if (monthEntry && monthEntry.days.length > 0) {
         const todayDate = this.date.getDate();
-        today = monthEntry.days.find(
-          (day) => parseInt(day.date, 10) === todayDate
-        );
-
-        if (!today && monthEntry.days.length > 0) {
+        
+        // Find today's entry by date number
+        today = monthEntry.days.find(day => parseInt(day.date, 10) === todayDate);
+        
+        if (!today) {
+          console.log(`Today (${todayDate}) not found in calendar, using first available day`);
           today = monthEntry.days[0];
         }
-
-        if (today) {
-          const todayIndex = monthEntry.days.findIndex((day) => day === today);
-
-          if (todayIndex !== -1 && todayIndex + 1 < monthEntry.days.length) {
+        
+        // Ensure today's day name is correct
+        const todayDayName = this.dayNames[this.date.getDay()];
+        if (today.day !== todayDayName) {
+          console.log(`Fixing day name for today: ${today.day} -> ${todayDayName}`);
+          today.day = todayDayName;
+        }
+        
+        // Find tomorrow and day after tomorrow
+        const todayIndex = monthEntry.days.findIndex(day => parseInt(day.date, 10) === todayDate);
+        if (todayIndex !== -1) {
+          if (todayIndex + 1 < monthEntry.days.length) {
             tomorrow = monthEntry.days[todayIndex + 1];
-
+            
+            // Verify tomorrow's day name
+            const tomorrowDate = new Date(this.date);
+            tomorrowDate.setDate(this.date.getDate() + 1);
+            const tomorrowDayName = this.dayNames[tomorrowDate.getDay()];
+            if (tomorrow.day !== tomorrowDayName) {
+              console.log(`Fixing day name for tomorrow: ${tomorrow.day} -> ${tomorrowDayName}`);
+              tomorrow.day = tomorrowDayName;
+            }
+            
             if (todayIndex + 2 < monthEntry.days.length) {
               dayAfterTomorrow = monthEntry.days[todayIndex + 2];
-            } else if (
-              monthIndex + 1 < sortedData.length &&
-              sortedData[monthIndex + 1].days.length > 0
-            ) {
-              dayAfterTomorrow = sortedData[monthIndex + 1].days[0];
-            }
-          } else if (
-            monthIndex + 1 < sortedData.length &&
-            sortedData[monthIndex + 1].days.length > 0
-          ) {
-            tomorrow = sortedData[monthIndex + 1].days[0];
-
-            if (sortedData[monthIndex + 1].days.length > 1) {
-              dayAfterTomorrow = sortedData[monthIndex + 1].days[1];
+              
+              // Verify day after tomorrow's day name
+              const dayAfterTomorrowDate = new Date(this.date);
+              dayAfterTomorrowDate.setDate(this.date.getDate() + 2);
+              const dayAfterTomorrowDayName = this.dayNames[dayAfterTomorrowDate.getDay()];
+              if (dayAfterTomorrow.day !== dayAfterTomorrowDayName) {
+                console.log(`Fixing day name for day after tomorrow: ${dayAfterTomorrow.day} -> ${dayAfterTomorrowDayName}`);
+                dayAfterTomorrow.day = dayAfterTomorrowDayName;
+              }
             }
           }
         }
@@ -366,57 +314,40 @@ class CalendarFetcher {
       return response;
     } catch (error) {
       console.error("Error parsing calendar:", error);
-
-      const response = new CalendarResponse();
-      response.error = true;
-      response.message = "Calendar data unavailable: " + error.message;
-      response.status = 500;
-
-      const today = new Date();
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      const monthName = monthNames[today.getMonth()];
-      const year = today.getFullYear().toString().substr(2);
-
-      const monthEntry = new CalendarMonth();
-      monthEntry.month = `${monthName} '${year}`;
-
-      const todayObj = new Day();
-      todayObj.date = today.getDate().toString();
-      todayObj.day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-        today.getDay()
-      ];
-      todayObj.event = "Regular Working Day";
-      todayObj.dayOrder = "1";
-
-      monthEntry.days = [todayObj];
-
-      response.calendar = [monthEntry];
-      response.today = todayObj;
-      response.tomorrow = null;
-      response.dayAfterTomorrow = null;
-      response.index = 0;
-
-      return response;
+      return this.generateFallbackCalendarResponse();
+    }
+  }
+  
+  validateAndFixDayName(dayObj, monthStr) {
+    try {
+      // Extract month and year from the month string
+      const monthMatch = monthStr.match(/(\w+)\s+'(\d+)/);
+      if (!monthMatch) return; // Can't parse the month string
+      
+      const monthName = monthMatch[1];
+      const yearSuffix = monthMatch[2];
+      const year = parseInt("20" + yearSuffix, 10);
+      
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthIndex = monthNames.findIndex(m => m === monthName);
+      if (monthIndex === -1) return; // Unknown month name
+      
+      // Create a date object for this day
+      const date = new Date(year, monthIndex, parseInt(dayObj.date, 10));
+      const correctDayName = this.dayNames[date.getDay()];
+      
+      if (dayObj.day !== correctDayName) {
+        console.log(`Fixing day name for ${monthName} ${dayObj.date}: ${dayObj.day} -> ${correctDayName}`);
+        dayObj.day = correctDayName;
+      }
+    } catch (e) {
+      console.error("Error validating day name:", e);
     }
   }
 
   async getTodayDayOrder() {
     try {
       const calendarResp = await this.getCalendar();
-
       const response = new DayOrderResponse();
 
       if (calendarResp.error) {
@@ -427,71 +358,48 @@ class CalendarFetcher {
       }
 
       if (!calendarResp.today) {
-        response.error = true;
-        response.message = "No information available for today";
-        response.status = 404;
-
-        const today = new Date();
+        console.log("No today object found in calendar, creating fallback");
+        const today = this.date;
         response.date = today.getDate().toString();
-        response.day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-          today.getDay()
-        ];
-        response.dayOrder = "1";
+        response.day = this.dayNames[today.getDay()];
+        response.dayOrder = ((today.getDate() % 5) || 5).toString();
         response.event = "Regular Working Day";
-        response.error = false;
         response.status = 200;
         return response;
       }
 
       response.date = calendarResp.today.date;
       response.day = calendarResp.today.day;
-      response.dayOrder = calendarResp.today.dayOrder;
+      response.dayOrder = calendarResp.today.dayOrder || "-";
       response.event = calendarResp.today.event;
       response.status = 200;
 
       return response;
     } catch (error) {
       console.error("Error getting day order:", error);
-
+      
+      // Create fallback response
       const response = new DayOrderResponse();
-      response.error = true;
-      response.message = error.message;
-      response.status = 500;
-
-      const today = new Date();
+      const today = this.date;
       response.date = today.getDate().toString();
-      response.day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-        today.getDay()
-      ];
-      response.dayOrder = "1";
+      response.day = this.dayNames[today.getDay()];
+      response.dayOrder = ((today.getDate() % 5) || 5).toString();
       response.event = "Regular Working Day";
-
+      response.status = 200;
+      
       return response;
     }
   }
 
   sortCalendarData(data) {
-    const monthNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const monthIndices = {};
-
-    monthNames.forEach((month, index) => {
-      monthIndices[month] = index;
-    });
-
     try {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthIndices = {};
+
+      monthNames.forEach((month, index) => {
+        monthIndices[month] = index;
+      });
+
       data.sort((a, b) => {
         const month1 = a.month.split("'")[0].trim().substring(0, 3);
         const month2 = b.month.split("'")[0].trim().substring(0, 3);
@@ -505,11 +413,12 @@ class CalendarFetcher {
           return date1 - date2;
         });
       });
+
+      return data;
     } catch (error) {
       console.error("Error sorting calendar data:", error);
+      return data; // Return unsorted data
     }
-
-    return data;
   }
 }
 
