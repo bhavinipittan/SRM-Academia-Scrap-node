@@ -29,7 +29,7 @@ class MarksFetcher extends AcademicsFetch {
 
   async scrapeMarks(html) {
     try {
-      // First get attendance to map course codes to course titles
+      
       const attendanceData = await this.scrapeAttendance(html);
       if (!attendanceData || !attendanceData.attendance) {
         return {
@@ -39,13 +39,13 @@ class MarksFetcher extends AcademicsFetch {
         };
       }
 
-      // Create course map
+
       const courseMap = {};
       for (const att of attendanceData.attendance) {
         courseMap[att.courseCode] = att.courseTitle;
       }
 
-      // Extract marks table from HTML
+     
       let marksHtml = "";
       const parts = html.split(
         '<table border="1" align="center" cellpadding="1" cellspacing="1">'
@@ -66,13 +66,13 @@ class MarksFetcher extends AcademicsFetch {
         };
       }
 
-      // Process tables with tests data
+    
       const $ = cheerio.load(marksHtml);
       const marks = [];
 
-      // Find all rows in the marks table
+
       $("tr").each((index, row) => {
-        // Skip header row
+      
         if (index === 0) return;
 
         const cells = $(row).find("td");
@@ -83,7 +83,7 @@ class MarksFetcher extends AcademicsFetch {
 
         if (!courseCode || courseCode === "") return;
 
-        // Process test performance cells
+      
         const testCell = cells.eq(2);
         const testTables = testCell.find("table");
 
@@ -114,12 +114,12 @@ class MarksFetcher extends AcademicsFetch {
               },
             });
 
-            // Add to overall only if not absent
+        
             if (scored !== "Abs") {
               overallScored += scored;
               overallTotal += total;
             } else {
-              overallTotal += total; // Still count the total possible marks
+              overallTotal += total; 
             }
           }
         });

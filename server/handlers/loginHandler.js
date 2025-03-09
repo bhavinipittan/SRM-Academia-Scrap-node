@@ -1,12 +1,10 @@
-const axios = require('axios');
+const axios = require("axios");
 
 async function login(username, password) {
-  // Remove @srmist.edu.in from username if present
   const user = username.replace("@srmist.edu.in", "");
   const url = `https://academia.srmist.edu.in/accounts/p/40-10002227248/signin/v2/lookup/${user}@srmist.edu.in`;
 
   try {
-    // First request - user lookup
     const lookupResponse = await axios({
       method: "POST",
       url: url,
@@ -34,7 +32,6 @@ async function login(username, password) {
 
     const data = lookupResponse.data;
 
-    // Check for errors
     if (data.errors && data.errors.length > 0) {
       const lookupMsg = data.errors[0].message;
       const statusCode = data.status_code;
@@ -70,7 +67,6 @@ async function login(username, password) {
       };
     }
 
-    // Get session with password
     const lookup = data.lookup;
     if (!lookup) {
       throw new Error("Invalid lookup data");
@@ -138,7 +134,6 @@ async function getSession(password, lookup) {
 
     const data = response.data;
 
-    // Extract cookies from response headers
     let cookiesHeader = "";
     if (response.headers["set-cookie"]) {
       if (Array.isArray(response.headers["set-cookie"])) {
@@ -156,30 +151,29 @@ async function getSession(password, lookup) {
   }
 }
 
-// Also create logout functionality
 async function logout(token) {
   try {
     const response = await axios({
       method: "POST",
       url: "https://academia.srmist.edu.in/accounts/logout",
       headers: {
-        "Accept": "*/*",
+        Accept: "*/*",
         "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": token
-      }
+        Cookie: token,
+      },
     });
-    
+
     return {
       success: true,
       message: "Successfully logged out",
-      status: response.status
+      status: response.status,
     };
   } catch (error) {
     console.error("Logout error:", error);
     return {
       success: false,
       message: error.message || "Failed to logout",
-      status: error.response?.status || 500
+      status: error.response?.status || 500,
     };
   }
 }
@@ -187,5 +181,5 @@ async function logout(token) {
 module.exports = {
   login,
   logout,
-  getSession
+  getSession,
 };

@@ -1,7 +1,7 @@
 const handleError = (res, err) => {
   console.error('Error handling:', err);
   
-  // Handle 403 errors specifically
+  
   if (err.message && err.message.includes('403')) {
     return res.status(403).json({
       error: 'Access denied. You might not have permission to view this resource.',

@@ -41,7 +41,7 @@ class CourseFetcher {
 
   getUrl() {
     const currentDate = new Date();
-    const currentMonth = currentDate.getMonth(); // 0-11
+    const currentMonth = currentDate.getMonth(); 
     const currentYear = currentDate.getFullYear();
 
     let academicYearStart, academicYearEnd;
@@ -54,7 +54,7 @@ class CourseFetcher {
       academicYearEnd = currentYear - 1;
     }
 
-    // Format like 2023_24 (last two digits of end year)
+
     return `https://academia.srmist.edu.in/srm_university/academia-academic-services/page/My_Time_Table_${academicYearStart}_${
       academicYearEnd % 100
     }`;
@@ -113,11 +113,11 @@ class CourseFetcher {
 
   scrapeCourses(html) {
     try {
-      // Extract registration number
+    
       const regNumberMatch = html.match(/RA2\d{12}/);
       const regNumber = regNumberMatch ? regNumberMatch[0] : "";
 
-      // Find the course table in the HTML
+
       let courseTableHtml = "";
       const tableParts = html.split(
         '<table cellspacing="1" cellpadding="1" border="1" align="center" style="width:900px!important;" class="course_tbl">'
@@ -157,7 +157,7 @@ class CourseFetcher {
           room = room.charAt(0).toUpperCase() + room.slice(1);
         }
 
-        // Determine slot type
+  
         const slotType = slot.includes("P") ? "Practical" : "Theory";
 
         const course = new Course();

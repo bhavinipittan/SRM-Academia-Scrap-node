@@ -189,11 +189,9 @@ class Timetable {
           }
         }
 
-        // Only process slots that have subjects mapped to them
         if (slotMapping[slot]) {
           const slots = slotMapping[slot];
           if (slots.length > 1) {
-            // Merge multiple courses for the same slot
             const merged = {
               code: this.uniqueCodes(slots).join("/"),
               name: this.uniqueNames(slots).join("/"),
@@ -206,7 +204,6 @@ class Timetable {
             };
             table.push(merged);
           } else {
-            // Add time information to the single slot
             slots[0].startTime = startTime;
             slots[0].endTime = endTime;
             table.push(slots[0]);
@@ -214,7 +211,6 @@ class Timetable {
         }
       }
 
-      // Only add days that have at least one subject
       if (table.length > 0) {
         schedule.push({ day: day.day, table: table });
       }

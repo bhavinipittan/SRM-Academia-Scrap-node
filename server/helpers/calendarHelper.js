@@ -38,7 +38,6 @@ class CalendarFetcher {
       const data = response.data;
       let htmlText;
 
-      // Extract HTML content from response
       if (data.includes("<table bgcolor=")) {
         htmlText = data;
       } else {
@@ -77,7 +76,6 @@ class CalendarFetcher {
       const $ = cheerio.load(html);
       const response = new CalendarResponse();
 
-      // Extract month headers
       const monthHeaders = [];
       $("th").each((_, element) => {
         const month = $(element).text().trim();
@@ -86,7 +84,6 @@ class CalendarFetcher {
         }
       });
 
-      // Initialize calendar data
       const data = monthHeaders.map((header) => {
         const month = new CalendarMonth();
         month.month = header;
@@ -94,7 +91,6 @@ class CalendarFetcher {
         return month;
       });
 
-      // Extract days data
       $("table tr").each((_, row) => {
         const tds = $(row).find("td");
 
@@ -123,10 +119,8 @@ class CalendarFetcher {
         }
       });
 
-      // Sort calendar data
       const sortedData = this.sortCalendarData(data);
 
-      // Find current month entry
       const monthNames = [
         "Jan",
         "Feb",
@@ -159,7 +153,6 @@ class CalendarFetcher {
         monthIndex = 0;
       }
 
-      // Get today, tomorrow, day after tomorrow
       let today = null;
       let tomorrow = null;
       let dayAfterTomorrow = null;
@@ -170,12 +163,10 @@ class CalendarFetcher {
         if (todayIndex >= 0 && todayIndex < monthEntry.days.length) {
           today = monthEntry.days[todayIndex];
 
-          // Get tomorrow's date
           const tomorrowIndex = todayIndex + 1;
           if (tomorrowIndex < monthEntry.days.length) {
             tomorrow = monthEntry.days[tomorrowIndex];
 
-            // Get day after tomorrow
             const dayAfterTomorrowIndex = tomorrowIndex + 1;
             if (dayAfterTomorrowIndex < monthEntry.days.length) {
               dayAfterTomorrow = monthEntry.days[dayAfterTomorrowIndex];
@@ -183,17 +174,14 @@ class CalendarFetcher {
               monthIndex + 1 < sortedData.length &&
               sortedData[monthIndex + 1].days.length > 0
             ) {
-              // If day after tomorrow is in the next month
               dayAfterTomorrow = sortedData[monthIndex + 1].days[0];
             }
           } else if (
             monthIndex + 1 < sortedData.length &&
             sortedData[monthIndex + 1].days.length > 0
           ) {
-            // If tomorrow is in the next month
             tomorrow = sortedData[monthIndex + 1].days[0];
 
-            // If day after tomorrow is also in the next month
             if (sortedData[monthIndex + 1].days.length > 1) {
               dayAfterTomorrow = sortedData[monthIndex + 1].days[1];
             }
@@ -221,7 +209,6 @@ class CalendarFetcher {
 
   async getTodayDayOrder() {
     try {
-      // First get the complete calendar
       const calendarResp = await this.getCalendar();
 
       const response = new DayOrderResponse();
@@ -233,7 +220,6 @@ class CalendarFetcher {
         return response;
       }
 
-      // Check if today's data is available
       if (!calendarResp.today) {
         response.error = true;
         response.message = "No information available for today";
@@ -241,7 +227,6 @@ class CalendarFetcher {
         return response;
       }
 
-      // Return today's day order information
       response.date = calendarResp.today.date;
       response.day = calendarResp.today.day;
       response.dayOrder = calendarResp.today.dayOrder;
@@ -279,7 +264,6 @@ class CalendarFetcher {
       monthIndices[month] = index;
     });
 
-    // Sort months
     data.sort((a, b) => {
       const month1 = a.month.split("'")[0].substring(0, 3);
       const month2 = b.month.split("'")[0].substring(0, 3);

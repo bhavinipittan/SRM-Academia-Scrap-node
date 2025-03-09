@@ -10,13 +10,11 @@ async function getTimetable(token) {
 
     const timetableFetcher = new Timetable(token);
 
-    // Get the batch number
     const batchNum = user.batch;
     if (!batchNum) {
       throw new Error("User batch information not available");
     }
 
-    // Get the timetable for this batch
     const timetable = await timetableFetcher.getTimetable(batchNum);
     return timetable;
   } catch (error) {
