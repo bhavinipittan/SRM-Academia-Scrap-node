@@ -74,7 +74,7 @@ app.use(
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   standardHeaders: true,
   keyGenerator: (req) => {
     const token = req.headers["x-csrf-token"];
