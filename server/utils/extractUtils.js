@@ -8,7 +8,7 @@ const convertHexToHTML = (hexString) => {
 };
 
 const decodeHTMLEntities = (encodedString) => {
-  if (!encodedString) return '';
+  if (!encodedString) return ''
   
   const htmlEntities = {
     'lt': '<',
