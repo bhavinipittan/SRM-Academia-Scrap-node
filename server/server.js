@@ -50,7 +50,7 @@ const cacheMiddleware = (req, res, next) => {
 };
 
 const urls = process.env.URL;
-let allowedOrigins = "http://localhost:3000";
+let allowedOrigins = "http://localhost:5173";
 if (urls) {
   allowedOrigins += "," + urls;
 }
