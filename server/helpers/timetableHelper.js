@@ -16,8 +16,8 @@ const slotTimes = [
   "12:30-13:20",
   "13:25-14:15",
   "14:20-15:10",
-  "15:15-16:05",
-  "16:10-17:00",
+  "15:10-16:00",
+  "16:00-16:50",
 ];
 
 const batch1 = {
@@ -134,6 +134,16 @@ class Timetable {
     }
   }
 
+  convertTo12Hour(time24) {
+    const [hours, minutes] = time24.split(":").map(Number);
+
+    const period = hours >= 12 ? "PM" : "AM";
+
+    const hours12 = hours % 12 || 12;
+
+    return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+  }
+
   getSlotsFromRange(slotRange) {
     return slotRange.split("-");
   }
@@ -173,46 +183,50 @@ class Timetable {
     const schedule = [];
 
     for (const day of batch.slots) {
-      const table = [];
+      const dayClasses = [];
 
       for (let i = 0; i < day.slots.length; i++) {
-        const slot = day.slots[i];
+        const slotCode = day.slots[i];
 
-        let startTime = "";
-        let endTime = "";
-        if (i < day.times.length) {
-          const timeRange = day.times[i];
-          const timeParts = timeRange.split("-");
-          if (timeParts.length === 2) {
-            startTime = timeParts[0];
-            endTime = timeParts[1];
-          }
-        }
+        if (!slotMapping[slotCode]) continue;
 
-        if (slotMapping[slot]) {
-          const slots = slotMapping[slot];
-          if (slots.length > 1) {
-            const merged = {
-              code: this.uniqueCodes(slots).join("/"),
-              name: this.uniqueNames(slots).join("/"),
-              online: slots[0].online,
-              courseType: slots[0].courseType,
-              roomNo: this.uniqueRooms(slots).join("/"),
-              slot: slot,
-              startTime: startTime,
-              endTime: endTime,
-            };
-            table.push(merged);
-          } else {
-            slots[0].startTime = startTime;
-            slots[0].endTime = endTime;
-            table.push(slots[0]);
-          }
+        const timeRange = day.times[i];
+        const [startTime24, endTime24] = timeRange.split("-");
+        const startTime = this.convertTo12Hour(startTime24);
+        const endTime = this.convertTo12Hour(endTime24);
+
+        const subjectsInSlot = slotMapping[slotCode];
+
+        if (subjectsInSlot.length > 1) {
+          const mergedClass = {
+            code: this.uniqueCodes(subjectsInSlot).join("/"),
+            name: this.uniqueNames(subjectsInSlot).join("/"),
+            online: subjectsInSlot[0].online,
+            courseType: subjectsInSlot[0].courseType,
+            roomNo: this.uniqueRooms(subjectsInSlot).join("/"),
+            slot: slotCode,
+            startTime,
+            endTime,
+            timeSlot: `${startTime}-${endTime}`,
+          };
+          dayClasses.push(mergedClass);
+        } else {
+          const classEntry = {
+            ...subjectsInSlot[0],
+            startTime,
+            endTime,
+            timeSlot: `${startTime}-${endTime}`,
+          };
+          dayClasses.push(classEntry);
         }
       }
 
-      if (table.length > 0) {
-        schedule.push({ day: day.day, table: table });
+      if (dayClasses.length > 0) {
+        schedule.push({
+          day: day.day,
+          dayOrder: day.dayOrder,
+          table: dayClasses,
+        });
       }
     }
 
