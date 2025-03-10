@@ -5,4 +5,4 @@ async function getAttendance(token) {
   return await scraper.getAttendance();
 }
 
-module.exports = { getAttendance };
+module.exports = { getAttendance }
