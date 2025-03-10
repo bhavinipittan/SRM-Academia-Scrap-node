@@ -1,12 +1,10 @@
-const { CoursePage, getUserFromHTML } = require('../helpers/userHelper');
+const { getUserWithPhoto } = require("../helpers/userHelper");
 
 async function getUser(token) {
   try {
-    const coursePage = new CoursePage(token);
-    const page = await coursePage.getPage();
-    return await getUserFromHTML(page);
+    return await getUserWithPhoto(token);
   } catch (error) {
-    console.error('Error in getUser:', error);
+    console.error("Error in getUser:", error);
     throw error;
   }
 }

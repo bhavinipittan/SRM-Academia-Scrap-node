@@ -1,6 +1,7 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 const { extractCookies } = require("../utils/extractUtils");
+const ProfileFetcher = require("./profileHelper");
 
 class CoursePage {
   constructor(cookie) {
@@ -191,7 +192,34 @@ async function getUserFromHTML(rawPage) {
   }
 }
 
+async function getUserWithPhoto(cookie) {
+  try {
+    const coursePage = new CoursePage(cookie);
+    const rawPage = await coursePage.getPage();
+    const userData = await getUserFromHTML(rawPage);
+
+    const profileFetcher = new ProfileFetcher(cookie);
+    const profileData = await profileFetcher.getProfile();
+
+    if (profileData && profileData.status === 200) {
+      if (profileData.photoUrl) {
+        userData.photoUrl = profileData.photoUrl;
+      }
+
+      if (profileData.photoBase64) {
+        userData.photoBase64 = profileData.photoBase64;
+      }
+    }
+
+    return userData;
+  } catch (error) {
+    console.error("Error getting user with photo:", error);
+    throw error;
+  }
+}
+
 module.exports = {
   CoursePage,
   getUserFromHTML,
+  getUserWithPhoto,
 };

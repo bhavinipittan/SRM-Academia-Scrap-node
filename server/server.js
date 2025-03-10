@@ -15,6 +15,7 @@ const { getCourses } = require("./handlers/courseHandler");
 const { getUser } = require("./handlers/userHandler");
 const { getTimetable } = require("./handlers/timetableHandler");
 const { login, logout } = require("./handlers/loginHandler");
+const { getProfile } = require("./handlers/profileHandler");
 
 if (process.env.DEV_MODE === "true") {
   dotenv.config();
@@ -164,6 +165,17 @@ app.get("/dayorder", tokenMiddleware, cacheMiddleware, async (req, res) => {
   try {
     const dayOrder = await getTodayDayOrder(req.headers["x-csrf-token"]);
     res.json(dayOrder);
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+
+// Add to routes in server.js
+app.get("/profile", tokenMiddleware, cacheMiddleware, async (req, res) => {
+  try {
+    const profile = await getProfile(req.headers["x-csrf-token"]);
+    res.json(profile);
   } catch (error) {
     handleError(res, error);
   }
