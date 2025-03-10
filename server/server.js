@@ -17,6 +17,7 @@ const { getTimetable } = require("./handlers/timetableHandler");
 const { login, logout } = require("./handlers/loginHandler");
 const { getProfile } = require("./handlers/profileHandler");
 const { getUpcomingClasses } = require("./handlers/upcomingClassesHandler");
+const { getTodayClasses } = require("./handlers/todayClassesHandler");
 
 if (process.env.DEV_MODE === "true") {
   dotenv.config();
@@ -142,14 +143,36 @@ app.delete("/logout", tokenMiddleware, async (req, res) => {
 });
 
 // Upcoming classes route
-app.get("/upcoming-classes", tokenMiddleware, cacheMiddleware, async (req, res) => {
-  try {
-    const upcomingClasses = await getUpcomingClasses(req.headers["x-csrf-token"]);
-    res.json(upcomingClasses);
-  } catch (error) {
-    handleError(res, error);
+app.get(
+  "/upcoming-classes",
+  tokenMiddleware,
+  cacheMiddleware,
+  async (req, res) => {
+    try {
+      const upcomingClasses = await getUpcomingClasses(
+        req.headers["x-csrf-token"]
+      );
+      res.json(upcomingClasses);
+    } catch (error) {
+      handleError(res, error);
+    }
   }
-});
+);
+
+// Today classes route
+app.get(
+  "/today-classes",
+  tokenMiddleware,
+  cacheMiddleware,
+  async (req, res) => {
+    try {
+      const todayClasses = await getTodayClasses(req.headers["x-csrf-token"]);
+      res.json(todayClasses);
+    } catch (error) {
+      handleError(res, error);
+    }
+  }
+);
 
 //courses route
 app.get("/courses", tokenMiddleware, cacheMiddleware, async (req, res) => {
@@ -180,7 +203,6 @@ app.get("/dayorder", tokenMiddleware, cacheMiddleware, async (req, res) => {
     handleError(res, error);
   }
 });
-
 
 // Add to routes in server.js
 app.get("/profile", tokenMiddleware, cacheMiddleware, async (req, res) => {
