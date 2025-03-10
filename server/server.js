@@ -16,6 +16,7 @@ const { getUser } = require("./handlers/userHandler");
 const { getTimetable } = require("./handlers/timetableHandler");
 const { login, logout } = require("./handlers/loginHandler");
 const { getProfile } = require("./handlers/profileHandler");
+const { getUpcomingClasses } = require("./handlers/upcomingClassesHandler");
 
 if (process.env.DEV_MODE === "true") {
   dotenv.config();
@@ -135,6 +136,16 @@ app.delete("/logout", tokenMiddleware, async (req, res) => {
     const token = req.headers["x-csrf-token"];
     const logoutResult = await logout(token);
     res.json(logoutResult);
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+// Upcoming classes route
+app.get("/upcoming-classes", tokenMiddleware, cacheMiddleware, async (req, res) => {
+  try {
+    const upcomingClasses = await getUpcomingClasses(req.headers["x-csrf-token"]);
+    res.json(upcomingClasses);
   } catch (error) {
     handleError(res, error);
   }
