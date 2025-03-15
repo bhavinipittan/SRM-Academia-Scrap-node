@@ -59,6 +59,45 @@ This API provides programmatic access to SRM Academia data through a RESTful int
  npm start
 ```
 
+
+## Docker
+
+### Docker Hub Repository
+The API is available as a Docker image on Docker Hub:
+[anujrishu4454/srm-academia-scraper](https://hub.docker.com/repository/docker/anujrishu4454/srm-academia-scraper/general)
+
+### Pull the image
+```sh
+docker pull anujrishu4454/srm-academia-scraper:latest
+```
+
+### Run the container
+```sh
+docker run -d -p 9000:9000 --name srm-academia anujrishu4454/srm-academia-scraper
+```
+
+### Using with environment variables
+```sh
+docker run -d -p 9000:9000 \
+  -e NODE_ENV=production \
+  -e PORT=9000 \
+  --name srm-academia anujrishu4454/srm-academia-scraper
+```
+
+### Docker Compose example
+```yaml
+version: '3'
+services:
+  srm-api:
+    image: anujrishu4454/srm-academia-scraper:latest
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+```
+
+
 ## API Endpoints
 
 ### Authentication
