@@ -23,7 +23,7 @@ const limiter = rateLimit({
   },
   handler: (req, res) => {
     res.status(429).json({
-      error: "🔨 SHUT UP! Rate limit exceeded. Please try again later.",
+      error: "Rate limit exceeded",
     });
   },
 });
