@@ -13,27 +13,22 @@ if (process.env.DEV_MODE === "true") {
   dotenv.config();
 }
 
-// Determine number of CPUs to use
 const numCPUs = os.cpus().length;
 
-// Check if this is the primary/master process
 if (cluster.isPrimary || cluster.isMaster) {
   console.log(`Master process ${process.pid} is running`);
   console.log(`Starting ${numCPUs} workers...`);
-  
-  // Fork workers equal to CPU cores
+
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
-  
-  // If a worker dies, start a new one
-  cluster.on('exit', (worker, code, signal) => {
+
+  cluster.on("exit", (worker, code, signal) => {
     console.log(`Worker ${worker.process.pid} died`);
-    console.log('Starting a new worker');
+    console.log("Starting a new worker");
     cluster.fork();
   });
 } else {
-  // Worker process - run the Express app
   const app = express();
   const port = process.env.PORT || 9000;
 
