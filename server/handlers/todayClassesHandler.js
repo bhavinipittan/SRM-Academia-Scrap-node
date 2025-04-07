@@ -1,107 +1,182 @@
-const { getTodayDayOrder } = require('./dayOrderHandler');
-const { getTimetable } = require('./timetableHandler');
+const {
+  getTodayDayOrder,
+  getTomorrowDayOrder,
+  getDayAfterTomorrowDayOrder,
+} = require("./dayOrderHandler");
+const { getTimetable } = require("./timetableHandler");
 
-async function getTodayClasses(token) {
+async function getClassesForDayOrder(token, dayOrderResponse) {
   try {
-    // Get today's day order
-    const dayOrderResponse = await getTodayDayOrder(token);
-    
     if (dayOrderResponse.error) {
       return {
         error: true,
         message: dayOrderResponse.message || "Failed to get day order",
         status: dayOrderResponse.status || 500,
-        classes: []
+        classes: [],
       };
     }
 
-    const todayDayOrder = dayOrderResponse.dayOrder;
-    
-    // If no day order (might be holiday), return early
-    if (!todayDayOrder) {
+    const dayOrder = dayOrderResponse.dayOrder;
+
+    if (!dayOrder) {
       return {
         error: false,
-        message: "No classes today (holiday or weekend)",
+        message: "No classes on this day (holiday or weekend)",
         status: 200,
-        classes: []
+        date: dayOrderResponse.date,
+        day: dayOrderResponse.day,
+        event: dayOrderResponse.event || "No event",
+        classes: [],
       };
     }
 
-    // Get timetable
     const timetableResponse = await getTimetable(token);
-    
-    // Handle different day order formats
+
     let dayOrderPossibilities = [
-      todayDayOrder, 
-      `Day ${todayDayOrder}`, 
-      todayDayOrder.replace('Day ', ''),
-      Number(todayDayOrder),
-      String(todayDayOrder)
+      dayOrder,
+      `Day ${dayOrder}`,
+      dayOrder.replace("Day ", ""),
+      Number(dayOrder),
+      String(dayOrder),
     ];
-    
-    // Find today's schedule based on any possible day order format
-    let todaySchedule = null;
+
+    let schedule = null;
     for (const possibleFormat of dayOrderPossibilities) {
-      const schedule = timetableResponse.schedule.find(day => 
-        day.dayOrder == possibleFormat || 
-        day.dayOrder === possibleFormat
+      const daySchedule = timetableResponse.schedule.find(
+        (day) =>
+          day.dayOrder == possibleFormat || day.dayOrder === possibleFormat
       );
-      if (schedule) {
-        todaySchedule = schedule;
+      if (daySchedule) {
+        schedule = daySchedule;
         break;
       }
     }
 
-    // If no schedule for today, return empty result
-    if (!todaySchedule) {
+    if (!schedule) {
       return {
         error: false,
-        message: `No classes found for ${todayDayOrder}`,
+        message: `No classes found for ${dayOrder}`,
         status: 200,
-        classes: []
+        date: dayOrderResponse.date,
+        day: dayOrderResponse.day,
+        event: dayOrderResponse.event || "No event",
+        classes: [],
       };
     }
 
-    // Sort classes by start time
-    const todayClasses = [...todaySchedule.table].sort((a, b) => {
-      // Convert times to comparable format (24-hour)
+    const classes = [...schedule.table].sort((a, b) => {
       const getComparableTime = (timeStr) => {
-        const [time, period] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        
-        if (period === 'PM' && hours !== 12) {
+        const [time, period] = timeStr.split(" ");
+        let [hours, minutes] = time.split(":").map(Number);
+
+        if (period === "PM" && hours !== 12) {
           hours += 12;
         }
-        if (period === 'AM' && hours === 12) {
+        if (period === "AM" && hours === 12) {
           hours = 0;
         }
-        
+
         return hours * 60 + minutes;
       };
-      
+
       return getComparableTime(a.startTime) - getComparableTime(b.startTime);
     });
 
     return {
       error: false,
-      message: "Today's classes retrieved successfully",
+      message: "Classes retrieved successfully",
       status: 200,
-      dayOrder: todayDayOrder,
+      dayOrder,
       date: dayOrderResponse.date,
       day: dayOrderResponse.day,
       event: dayOrderResponse.event || "No event",
-      classes: todayClasses
+      classes,
     };
-    
   } catch (error) {
-    console.error('Error getting today\'s classes:', error);
+    console.error(`Error getting classes:`, error);
     return {
       error: true,
-      message: error.message || "Failed to get today's classes",
+      message: error.message || "Failed to get classes",
       status: 500,
-      classes: []
+      classes: [],
     };
   }
 }
 
-module.exports = { getTodayClasses };
+async function getTodayClasses(token) {
+  try {
+    const dayOrderResponse = await getTodayDayOrder(token);
+    return await getClassesForDayOrder(token, dayOrderResponse);
+  } catch (error) {
+    console.error("Error getting today's classes:", error);
+    return {
+      error: true,
+      message: error.message || "Failed to get today's classes",
+      status: 500,
+      classes: [],
+    };
+  }
+}
+
+async function getTomorrowClasses(token) {
+  try {
+    const dayOrderResponse = await getTomorrowDayOrder(token);
+    return await getClassesForDayOrder(token, dayOrderResponse);
+  } catch (error) {
+    console.error("Error getting tomorrow's classes:", error);
+    return {
+      error: true,
+      message: error.message || "Failed to get tomorrow's classes",
+      status: 500,
+      classes: [],
+    };
+  }
+}
+
+async function getDayAfterTomorrowClasses(token) {
+  try {
+    const dayOrderResponse = await getDayAfterTomorrowDayOrder(token);
+    return await getClassesForDayOrder(token, dayOrderResponse);
+  } catch (error) {
+    console.error("Error getting day after tomorrow's classes:", error);
+    return {
+      error: true,
+      message: error.message || "Failed to get day after tomorrow's classes",
+      status: 500,
+      classes: [],
+    };
+  }
+}
+
+async function getUpcomingClasses(token) {
+  try {
+    const [today, tomorrow, dayAfterTomorrow] = await Promise.all([
+      getTodayClasses(token),
+      getTomorrowClasses(token),
+      getDayAfterTomorrowClasses(token),
+    ]);
+
+    return {
+      error: false,
+      message: "Upcoming classes retrieved successfully",
+      status: 200,
+      today,
+      tomorrow,
+      dayAfterTomorrow,
+    };
+  } catch (error) {
+    console.error("Error getting upcoming classes:", error);
+    return {
+      error: true,
+      message: error.message || "Failed to get upcoming classes",
+      status: 500,
+    };
+  }
+}
+
+module.exports = {
+  getTodayClasses,
+  getTomorrowClasses,
+  getDayAfterTomorrowClasses,
+  getUpcomingClasses,
+};
