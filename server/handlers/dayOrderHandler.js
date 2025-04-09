@@ -8,6 +8,7 @@ async function getTodayDayOrder(token) {
     if (!response.dayOrder) {
       return {
         ...response,
+        error: false,  // Not an error, just no classes
         event: response.event || "Holiday/Weekend",
         message: "No classes on this day (holiday or weekend)",
       };
@@ -16,7 +17,15 @@ async function getTodayDayOrder(token) {
     return response;
   } catch (error) {
     console.error("Error getting day order:", error);
-    throw error;
+    // Return a graceful fallback response instead of throwing
+    return {
+      error: true,
+      message: "Failed to retrieve day order information",
+      date: new Date().toISOString().split('T')[0],
+      day: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()],
+      event: "Unknown (API Error)",
+      dayOrder: null
+    };
   }
 }
 
@@ -30,6 +39,7 @@ async function getTomorrowDayOrder(token) {
     if (!response.dayOrder) {
       return {
         ...response,
+        error: false,  // Not an error, just no classes
         event: response.event || "Holiday/Weekend",
         message: "No classes on this day (holiday or weekend)",
       };
@@ -38,7 +48,17 @@ async function getTomorrowDayOrder(token) {
     return response;
   } catch (error) {
     console.error("Error getting tomorrow's day order:", error);
-    throw error;
+    // Return a graceful fallback response
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return {
+      error: true,
+      message: "Failed to retrieve tomorrow's day order information",
+      date: tomorrow.toISOString().split('T')[0],
+      day: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][tomorrow.getDay()],
+      event: "Unknown (API Error)",
+      dayOrder: null
+    };
   }
 }
 
@@ -52,6 +72,7 @@ async function getDayAfterTomorrowDayOrder(token) {
     if (!response.dayOrder) {
       return {
         ...response,
+        error: false,  // Not an error, just no classes
         event: response.event || "Holiday/Weekend",
         message: "No classes on this day (holiday or weekend)",
       };
@@ -60,7 +81,17 @@ async function getDayAfterTomorrowDayOrder(token) {
     return response;
   } catch (error) {
     console.error("Error getting day after tomorrow's day order:", error);
-    throw error;
+    // Return a graceful fallback response
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    return {
+      error: true,
+      message: "Failed to retrieve day after tomorrow's day order information",
+      date: dayAfterTomorrow.toISOString().split('T')[0],
+      day: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayAfterTomorrow.getDay()],
+      event: "Unknown (API Error)",
+      dayOrder: null
+    };
   }
 }
 

@@ -19,7 +19,14 @@ async function getTimetable(token) {
     return timetable;
   } catch (error) {
     console.error("Error in getTimetable handler:", error);
-    throw error;
+    // Return empty timetable instead of throwing
+    return {
+      regNumber: "Unknown",
+      batch: null,
+      schedule: [],
+      error: true,
+      message: error.message || "Failed to retrieve timetable"
+    };
   }
 }
 
